@@ -4,7 +4,7 @@
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_huruwo_armassembly2cpython_MainActivity_stringFromJNI(
         JNIEnv* env,
-        jobject /* this */) {
+        jobject /* this */,jstring name) {
     std::string v5 = "Hello from C++";
     const char *v3 =  v5.c_str();
     jstring v2 = env->NewStringUTF(v3);
