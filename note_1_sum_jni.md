@@ -1,4 +1,4 @@
-### hellojni:NDKC代码和伪C代码以及汇编代码分析
+### sum_jni:NDKC代码和伪C代码以及汇编代码分析
 
 #### NDK C++
 
@@ -65,59 +65,29 @@ IDA确实直接缺省了第二个参数，因为实际上没有用到。
 
 ##### 逐行对比方法内部内容
 
-由于之前的NDK写法过于简陋，现修改如下
 
-```c++
-std::string v5 = "Hello from C++";
-const char *v3 =  v5.c_str();
-jstring v2 = env->NewStringUTF(v3);
-return v2;
-```
-对比IDA
+NDK
 
-```c++
-int v2; // [sp+0h] [bp-38h]
-char *v3; // [sp+4h] [bp-34h]
-char v5[12]; // [sp+20h] [bp-18h] BYREF
-
-std::string::basic_string<decltype(nullptr)>();
-v3 = (char *)sub_8252(v5);
-v2 = _JNIEnv::NewStringUTF(a1, v3);
-std::string::~string(v5);
-return v2;
+```C++
+extern "C" JNIEXPORT int JNICALL
+Java_com_huruwo_armassembly2cpython_MainActivity_sumFromJNI(
+        JNIEnv* env,
+        jobject /* this */,int a,int b) {
+    int c = a+b;
+    return c;
+}
 ```
 
-###### 字符串赋值呢?
+IDA
 
-在伪C代码里面 看不到 v5的赋值信息
-
-即使我只写一行
-
-`std::string v5 = "Hello from C++";`
-
-反编译过来也是
-
-```c++
-  char v1[12]; // [sp+10h] [bp-18h] BYREF
-  std::string::basic_string<decltype(nullptr)>();
-  std::string::~string(v1);
-  return &_stack_chk_guard;
+```C++
+int __fastcall Java_com_huruwo_armassembly2cpython_MainActivity_sumFromJNI(int a1, int a2, int a3, int a4)
+{
+  return a3 + a4;
+}
 ```
 
-`std::string::basic_string<decltype(nullptr)>(); `这行也是编译器新增的 用于类型推断
-
-实际上有用的是
-
-`std::string::~string(v1);`
-
-所以伪C代码不完全可信
-
-##### c_str 和 sub_8252
-
-可以推断出两个方法是一样的，但是IDA没有识别出这个方法来。
-
-##### 剩下的没什么好看的
-
+看起来一致 IDA对这个函数的还原非常高
 
 #### 汇编代码 
 
@@ -128,26 +98,43 @@ IDA的汇编代码加载了反编译的额外信息
 
 ```
 SUB             SP, SP, #0x14
-
+SP = SP-14
 
 STR             R0, [SP,#0x14+var_4]
 STR             R1, [SP,#0x14+var_8]
 
+存储R0 R1 的值
 
 STR             R2, [SP,#0x14+var_C]
 STR             R3, [SP,#0x14+var_10]
 
 
 LDR             R0, [SP,#0x14+var_C]
+
+R2 到 R0
+
 LDR             R1, [SP,#0x14+var_10]
 
+R3 到 R1
+
+
 ADD             R0, R1
+
+R0 = R1+R0
 
 STR             R0, [SP,#0x14+var_14]
 LDR             R0, [SP,#0x14+var_14]
 
+这个操作等同没操作
+
 ADD             SP, SP, #0x14
+
+SP = SP+#14 恢复SP的值
+
 BX              LR
+
+返回 LR 即跳转到lr中存放的地址处
+
 ```
 SP = SP-14
 
@@ -164,6 +151,41 @@ STR LDR 操作同一个地址
 STR R0数据到存储器
 LDR 存储器数据回到R0
 
+BX LR 即跳转到lr中存放的地址处 用于程序返回 返回值在R0中
+
 演示一遍
 
-![](note_pic/note01_1_02.png)
+![](note_pic/note_1_02.png)
+可以看到R1的值转移到了R0
+
+#### 整体解析
+
+SP(R13)栈寄存器栈顶指针
+
+ARM的栈是自减栈，栈是向下生长的，也就是栈底处于高地址处，栈顶处于低地址处
+
+修改栈顶 减14
+
+寻找方式都是基于SP的寻址
+
+而且都加上了14也就是回到了原来的SP位置
+
+```
+var_14= -0x14
+var_10= -0x10
+var_C= -0xC
+var_8= -8
+var_4= -4
+```
+最大的寻址 偏移的位置正好 14
+
+先STR R0 R1 R2 R3 压进栈入参
+
+LDR 取出参数值赋值给 R0 R1
+
+ADD 进行操作 返回R0
+
+恢复 SP
+
+BX 函数返回
+
