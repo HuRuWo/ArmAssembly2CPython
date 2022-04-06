@@ -1,14 +1,11 @@
 #include <jni.h>
 #include <string>
 
-extern "C" JNIEXPORT jstring JNICALL
+extern "C" JNIEXPORT void JNICALL
 Java_com_huruwo_armassembly2cpython_MainActivity_stringFromJNI(
         JNIEnv* env,
-        jobject /* this */,jstring name) {
-    std::string v5 = "Hello from C++";
-    const char *v3 =  v5.c_str();
-    jstring v2 = env->NewStringUTF(v3);
-    return v2;
+        jobject /* this */) {
+    std::string s = "Hello from C++";
 }
 
 extern "C" JNIEXPORT int JNICALL
