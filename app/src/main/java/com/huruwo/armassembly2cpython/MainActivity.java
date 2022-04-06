@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public native void stringFromJNI();
 
-    public native int sumFromJNI(int a,int b);
+    public native void sumFromJNI(int a,int b);
 
 
 }
